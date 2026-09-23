@@ -32,12 +32,12 @@ services:
       - key: JWT_SECRET
         sync: false
 
-  - type: static
+  - type: web
     name: novacart-web
     runtime: static
     rootDir: client
     buildCommand: npm ci && npm run build
-    publishPath: dist
+    staticPublishPath: ./dist
     envVars:
       - key: NODE_VERSION
         value: "20"
