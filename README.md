@@ -114,6 +114,56 @@ npm start                   # serves the API (serve client/dist separately)
 
 ---
 
+## Deployment (production)
+
+This project is deploy-ready with a [Render Blueprint](render.yaml) and works with a free
+Neon PostgreSQL database.
+
+### 1. Database on Neon
+
+1. Create a free project at [neon.tech](https://neon.tech) and copy the connection string from
+   the dashboard (it looks like `postgresql://user:pass@ep-xxx-pooler.aws.neon.tech/neondb?sslmode=require`).
+   A working Prisma URL is the pooler string with any `channel_binding` parameter dropped:
+   `postgresql://user:pass@ep-xxx-pooler.aws.neon.tech/neondb?sslmode=require`.
+2. This string becomes the server's `DATABASE_URL`. The schema and seed are applied
+   automatically by the deploy script (see below), so no manual setup is needed.
+
+### 2. Code on GitHub
+
+Push this repository to GitHub (the repo already contains `render.yaml`).
+
+```ps
+git add -A
+git commit -m "Add production deployment config"
+git push -u origin main
+```
+
+Make sure `server/.env` is never committed — it is gitignored.
+
+### 3. Deploy with Render Blueprint
+
+1. Sign up at [render.com](https://render.com) and connect your GitHub account.
+2. Click **New +** > **Blueprint** > pick the NovaCart repository.
+3. Fill in the prompted environment variables:
+   - `DATABASE_URL` — the Neon connection string from step 1
+   - `JWT_SECRET` — a long random string (e.g. `openssl rand -hex 32`)
+   - `VITE_API_URL` — will be `https://novacart-api.onrender.com` (set after the API deploys)
+4. Click **Apply**. Render provisions:
+   - `novacart-api` — web service on Node 20: installs, runs `prisma migrate deploy`,
+     seeds the database, then starts the API.
+   - `novacart-web` — static site hosting the React build.
+5. After both deploy, open the **API** service, copy its URL
+   (e.g. `https://novacart-api.onrender.com`) and:
+   - set the static site env `VITE_API_URL` to that URL and redeploy it;
+   - add `,https://<static-site-URL>` to the API's `CLIENT_ORIGIN` env and redeploy the API.
+
+The storefront is then live at `https://<your-static-site>.onrender.com`.
+
+> Free Render web services spin down after ~15 minutes of inactivity; the first request after
+> an idle period takes a few seconds to wake up. The Neon database stays always-on.
+
+---
+
 ## Demo data (seeded)
 
 The seed script populates the database with 3 users, one of whom has the ADMIN role, and
